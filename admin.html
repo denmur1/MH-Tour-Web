@@ -100,7 +100,7 @@ async function loadRows(){
   msg($('adminStatus'),'Sesi admin tidak tersedia. Silakan login kembali.','error');return;
  }
  try{
-  const url=SUPABASE_URL+'/rest/v1/downloaders?select=*&order=created_at.desc';
+  const url=SUPABASE_URL+'/rest/v1/downloaders?select=*&order=waktu.desc';
   const r=await fetch(url,{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+session.access_token}});
   const text=await r.text();
   if(!r.ok){
@@ -125,7 +125,7 @@ function render(){
  }
  rows.forEach((r,i)=>{
   const tr=document.createElement('tr');
-  [i+1,value(r,'nama'),value(r,'email'),value(r,'tujuan'),value(r,'sebagai'),formatDate(value(r,'created_at'))]
+  [i+1,value(r,'nama'),value(r,'email'),value(r,'tujuan'),value(r,'sebagai'),formatDate(value(r,'waktu'))]
   .forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
   tb.appendChild(tr);
  });
@@ -156,7 +156,7 @@ $('csvBtn').addEventListener('click',()=>{
  const lines=[headers.map(esc).join(',')];
  rows.forEach((r,i)=>lines.push([
   i+1,value(r,'nama'),value(r,'email'),value(r,'tujuan'),value(r,'sebagai'),
-  formatDate(value(r,'created_at'))
+  formatDate(value(r,'waktu'))
  ].map(esc).join(',')));
  const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');
