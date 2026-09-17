@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MH Tour - Admin Pendownload</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f5f7fb;color:#172033}.wrap{max-width:1200px;margin:auto;padding:28px 18px}.card{background:#fff;border-radius:18px;padding:22px;box-shadow:0 8px 30px rgba(0,0,0,.08)}h1{margin:0 0 8px}.muted{color:#667085}.login{max-width:460px;margin:8vh auto}.field{margin:14px 0}.field label{display:block;font-weight:700;margin-bottom:7px}.field input{width:100%;padding:13px;border:1px solid #d0d5dd;border-radius:10px;font-size:16px}.btn{border:0;border-radius:10px;padding:12px 17px;font-weight:700;cursor:pointer}.primary{background:#172033;color:white}.secondary{background:#eef2f7;color:#172033}.danger{background:#fee4e2;color:#b42318}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.status{margin-top:12px;min-height:20px}.error{color:#b42318}.ok{color:#027a48}.table-wrap{overflow:auto;border:1px solid #eaecf0;border-radius:12px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{padding:11px 12px;border-bottom:1px solid #eaecf0;text-align:left;vertical-align:top}.table th{background:#f8fafc;position:sticky;top:0}.top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef2ff}.hidden{display:none!important}.count{font-weight:700}
+</style>
+</head>
+<body>
+<div id="loginView" class="wrap login"><div class="card">
+<h1>Admin Pendownload MH Tour</h1><p class="muted">Login menggunakan akun Supabase Auth yang Anda buat sebagai admin.</p>
+<form id="loginForm">
+<div class="field"><label>Email</label><input id="email" type="email" autocomplete="username" required></div>
+<div class="field"><label>Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+<button class="btn primary" type="submit">Login</button><div id="loginStatus" class="status"></div>
+</form></div></div>
+
+<div id="adminView" class="wrap hidden"><div class="card">
+<div class="top"><div><h1>Data Pendownload MH Tour</h1><p class="muted">Data diambil langsung dari tabel <b>downloaders</b> di Supabase.</p></div><div><span id="count" class="badge">0 data</span></div></div>
+<div class="actions"><button id="refreshBtn" class="btn primary">↻ Refresh</button><button id="csvBtn" class="btn secondary">⬇ Export CSV</button><button id="logoutBtn" class="btn danger">Logout</button></div>
+<div id="adminStatus" class="status"></div>
+<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Email</th><th>Tujuan</th><th>Sebagai</th><th>Waktu</th></tr></thead><tbody id="tbody"></tbody></table></div>
+</div></div>
+<script>
+const SUPABASE_URL='https://srtskkaeukerxhiarqyt.supabase.co';
+const SUPABASE_KEY='sb_publishable_h0V8veZlgyd-au7L42jUFw__1GqwGrU';
+let session=null, rows=[];
+const $=id=>document.getElementById(id);
+function msg(el,text,cls=''){el.textContent=text;el.className='status '+cls}
+async function auth(path,body){const r=await fetch(SUPABASE_URL+'/auth/v1/'+path,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch{};if(!r.ok)throw new Error(j.error_description||j.msg||j.message||'Login gagal');return j}
+$('loginForm').addEventListener('submit',async e=>{e.preventDefault();msg($('loginStatus'),'Memproses...');try{session=await auth('token?grant_type=password',{email:$('email').value.trim(),password:$('password').value});if(!session.access_token)throw new Error('Token login tidak diterima.');$('loginView').classList.add('hidden');$('adminView').classList.remove('hidden');await loadRows()}catch(err){msg($('loginStatus'),err.message,'error')}});
+async function loadRows(){msg($('adminStatus'),'Memuat data...');try{const r=await fetch(SUPABASE_URL+'/rest/v1/downloaders?select=*&order=waktu.desc',{headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+session.access_token}});const text=await r.text();if(!r.ok)throw new Error(text||'Gagal mengambil data. Pastikan RLS mengizinkan SELECT untuk authenticated.');rows=JSON.parse(text);render();msg($('adminStatus'),'Data berhasil dimuat.','ok')}catch(err){rows=[];render();msg($('adminStatus'),err.message,'error')}}
+function val(r,k1,k2=''){return r[k1]??r[k2]??''}
+function render(){const tb=$('tbody');tb.innerHTML='';rows.forEach((r,i)=>{const tr=document.createElement('tr');[i+1,val(r,'nama'),val(r,'email'),val(r,'tujuan'),val(r,'sebagai'),val(r,'waktu','created_at')].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});tb.appendChild(tr)});$('count').textContent=rows.length+' data'}
+$('refreshBtn').onclick=loadRows;
+$('logoutBtn').onclick=async()=>{try{await fetch(SUPABASE_URL+'/auth/v1/logout',{method:'POST',headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+session.access_token}})}catch{} session=null;rows=[];$('adminView').classList.add('hidden');$('loginView').classList.remove('hidden');$('password').value='';msg($('loginStatus'),'Anda sudah logout.','ok')};
+$('csvBtn').onclick=()=>{if(!rows.length){msg($('adminStatus'),'Belum ada data untuk diekspor.','error');return}const headers=['No','Nama','Email','Tujuan','Sebagai','Waktu'];const esc=v=>'"'+String(v??'').replace(/"/g,'""')+'"';const lines=[headers.map(esc).join(',')];rows.forEach((r,i)=>lines.push([i+1,val(r,'nama'),val(r,'email'),val(r,'tujuan'),val(r,'sebagai'),val(r,'waktu','created_at')].map(esc).join(',')));const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='MH_Tour_Data_Pendownload_'+new Date().toISOString().slice(0,10)+'.csv';a.click();URL.revokeObjectURL(a.href)};
+</script>
+</body></html>
