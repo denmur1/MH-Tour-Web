@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://denmur1.github.io/MH-Tour-Web/sitemap.xml
